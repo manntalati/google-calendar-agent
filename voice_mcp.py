@@ -21,6 +21,7 @@ class ToolCall(BaseModel):
     args: dict
 
 CALENDAR_ALIASES = {
+    "primary": "mann.talati@gmail.com",
     "ameren": "8160dc3d8b6b84c62efadca0c8eef8e2d0d62a45c6792c7e2b10ed46c1ab802a@group.calendar.google.com",
     "cs357": "d6340b62c24a1d096de0b7c14484d9abeb6b63a90594dfb93c38adc7d929ab9b@group.calendar.google.com",
     "cs374": "9f7456dbab7bfe75cf32bbe1982258c9b25e8bfe1d081f7135bfdb9e5dd194a2@group.calendar.google.com",
@@ -57,27 +58,35 @@ def invoke_tool(call: ToolCall):
 def run_server():
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
+def normalize(s: str):
+    return re.sub(r"\s+", "", s).lower()
+
 def extract_calendar_id(command_text: str):
+    normalized_command = normalize(command_text)
     for alias, cal_id in CALENDAR_ALIASES.items():
-        if alias.lower() in command_text.lower():
-            cleaned_text = re.sub(rf"\b{alias}\b( calendar)?", "", command_text, flags=re.IGNORECASE)
+        if normalize(alias) in normalized_command:
+            cleaned_text = re.sub(
+                rf"\b{alias}\b( calendar)?", "", command_text, flags=re.IGNORECASE
+            )
             return cal_id, cleaned_text.strip()
-    return "primary", "mann.talati@gmail.com"
+    return "primary", command_text.strip()
 
 def listen_for_command():
     r = sr.Recognizer()
     with sr.Microphone() as source:
-        print("Listening for your command... (you have ~15 seconds)")
+        print("Listening for your command... (you have ~20 seconds)")
         r.adjust_for_ambient_noise(source, duration=1)
-        audio = r.listen(source, timeout=10, phrase_time_limit=15)
+        audio = r.listen(source, timeout=10, phrase_time_limit=20)
     try:
         return r.recognize_google(audio)
     except:
         return None
     
 def parse_natural_language_event(command_text):
+    calendar_id, cleaned_text = extract_calendar_id(command_text)
+
     event_data = {
-        "calendar_id": "primary",
+        "calendar_id": calendar_id,
         "summary": "",
         "start_str": "",
         "end_str": "",
@@ -86,28 +95,23 @@ def parse_natural_language_event(command_text):
         "all_day": False
     }
 
-    attendees_match = re.findall(r'with ([A-Za-z ,]+)', command_text, re.IGNORECASE)
+    attendees_match = re.findall(r'with ([A-Za-z ,]+)', cleaned_text, re.IGNORECASE)
     if attendees_match:
         attendees = [a.strip() for a in attendees_match[0].split(',')]
         event_data["attendees"] = attendees
-        command_text = re.sub(r'with [A-Za-z ,]+', '', command_text, flags=re.IGNORECASE)
+        cleaned_text = re.sub(r'with [A-Za-z ,]+', '', cleaned_text, flags=re.IGNORECASE)
 
-    if "all day" in command_text.lower():
+    if "all day" in cleaned_text.lower():
         event_data["all_day"] = True
 
-    dt = dateparser.parse(command_text, settings={'PREFER_DATES_FROM': 'future'})
+    dt = dateparser.parse(cleaned_text, settings={'PREFER_DATES_FROM': 'future'})
     if dt:
         event_data["start_str"] = dt.isoformat()
         if not event_data["all_day"]:
             event_data["end_str"] = (dt + timedelta(hours=1)).isoformat()
 
-    summary = re.sub(r'at \d{1,2}(:\d{2})?\s*(am|pm)?', '', command_text, flags=re.IGNORECASE)
-    summary = summary.strip()
-    if summary:
-        event_data["summary"] = summary
-
-    calendar_id, command_text = extract_calendar_id(command_text)
-    event_data["calendar_id"] = calendar_id
+    summary = re.sub(r'at \d{1,2}(:\d{2})?\s*(am|pm)?', '', cleaned_text, flags=re.IGNORECASE)
+    event_data["summary"] = summary.strip()
 
     return event_data
     

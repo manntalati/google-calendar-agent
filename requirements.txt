@@ -10,3 +10,6 @@ python-dotenv
 PyAudio
 dateparser
 pydantic
+openai-whisper
+sounddevice
+scipy
