@@ -47,8 +47,9 @@ def run_server():
 def listen_for_command():
     r = sr.Recognizer()
     with sr.Microphone() as source:
-        print("Listening for your command...")
-        audio = r.listen(source)
+        print("Listening for your command... (you have ~15 seconds)")
+        r.adjust_for_ambient_noise(source, duration=1)
+        audio = r.record(source, timeout=10, phrase_time_limit=15)
     try:
         return r.recognize_google(audio)
     except:
@@ -153,6 +154,10 @@ def main():
         command = listen_for_command()
         if not command:
             print("Could not understand command.")
+            continue
+        print(f"✅ Heard: {command}")
+        confirm = input("Should I create this event? (y/n): ")
+        if confirm.lower() != "y":
             continue
         result = agent_handle_command(command)
         print("Result:", result)
