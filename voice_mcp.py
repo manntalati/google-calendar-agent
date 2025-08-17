@@ -2,7 +2,6 @@ import threading
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
-import speech_recognition as sr
 import requests
 from google.genai import Client, types
 from google_calendar import create_new_event, get_next_event
@@ -11,10 +10,15 @@ import os
 import re
 import dateparser
 from datetime import timedelta
+import whisper
+import sounddevice as sd
+import tempfile
+import soundfile as sf
 
 load_dotenv()
 
 app = FastAPI(title="Calendar Voice Assistant", version="1.0.0")
+model = whisper.load_model("base")
 
 class ToolCall(BaseModel):
     tool: str
@@ -72,15 +76,18 @@ def extract_calendar_id(command_text: str):
     return "primary", command_text.strip()
 
 def listen_for_command():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Listening for your command... (you have ~20 seconds)")
-        r.adjust_for_ambient_noise(source, duration=1)
-        audio = r.listen(source, timeout=10, phrase_time_limit=20)
-    try:
-        return r.recognize_google(audio)
-    except:
-        return None
+    print("Listening... (speak now)")
+    duration = 10
+    sample_rate = 16000
+    audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype="float32")
+    sd.wait()
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        wav_path = f.name
+        sf.write(wav_path, audio, sample_rate)
+
+    result = model.transcribe(wav_path)
+    text = result["text"].strip()
+    return text if text else None
     
 def parse_natural_language_event(command_text):
     calendar_id, cleaned_text = extract_calendar_id(command_text)

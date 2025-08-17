@@ -11,7 +11,10 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 def init_service():
     creds = None
     if os.path.exists("token.json"):
+      try:
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+      except Exception:
+        creds = None
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
@@ -73,6 +76,16 @@ def get_next_event():
         }
 
   return next_event
+
+def get_calendar_id(name_or_id):
+    if name_or_id.lower() == "primary":
+        return "primary"
+    
+    calendars = service.calendarList().list().execute().get("items", [])
+    for cal in calendars:
+        if cal["id"] == name_or_id or cal["summary"].lower() == name_or_id.lower():
+            return cal["id"]
+    raise ValueError(f"Calendar '{name_or_id}' not found. Available: {[c['summary'] for c in calendars]}")
   
 def create_new_event(calendar_id, summary, start_str, end_str=None, description=None, attendees=None, all_day=False):
   if not calendar_id:
