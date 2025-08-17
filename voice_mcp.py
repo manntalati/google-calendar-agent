@@ -20,11 +20,24 @@ class ToolCall(BaseModel):
     tool: str
     args: dict
 
+CALENDAR_ALIASES = {
+    "ameren": "8160dc3d8b6b84c62efadca0c8eef8e2d0d62a45c6792c7e2b10ed46c1ab802a@group.calendar.google.com",
+    "cs357": "d6340b62c24a1d096de0b7c14484d9abeb6b63a90594dfb93c38adc7d929ab9b@group.calendar.google.com",
+    "cs374": "9f7456dbab7bfe75cf32bbe1982258c9b25e8bfe1d081f7135bfdb9e5dd194a2@group.calendar.google.com",
+    "cube": "6fef44e621c2e43a97f112abc3972767b201dfff869348528b8cace8a4b9d13a@group.calendar.google.com",
+    "Family": "family09523738390342103298@group.calendar.google.com",
+    "gym": "cbd9ff2375b8c8c457bf2d41b5d24e9148ad7f0a9b60ab5d56194dd9c062d9e2@group.calendar.google.com",
+    "other stuff": "fa356ec657f24bccdac2c639cb3a66b04ee8a9785ded2b3ba6a5c6495f47eb09@group.calendar.google.com",
+    "Personal": "4574979994ed4e05c27f544f2f639ae0e47747860a2954d092a4c0609f4fc486@group.calendar.google.com",
+    "stat410": "68b970f4ac1bcbc7e1b4b041da37c32fc2a527126c23faa0eea5276c14a03333@group.calendar.google.com",
+    "stat425": "926660ce2c937a562f8883195ecdf0a5df538553242aa521bcb2ab90b659e27c@group.calendar.google.com",
+}
+
 @app.get('/tools')
 def list_tools():
   return {
     "tools": [
-        {"name": "create_event", "description": "Create a new calendar event"},
+        {"name": "create_new_event", "description": "Create a new calendar event"},
         {"name": "get_next_event", "description": "Get the next event"}
     ]
   }
@@ -44,12 +57,19 @@ def invoke_tool(call: ToolCall):
 def run_server():
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
+def extract_calendar_id(command_text: str):
+    for alias, cal_id in CALENDAR_ALIASES.items():
+        if alias.lower() in command_text.lower():
+            cleaned_text = re.sub(rf"\b{alias}\b( calendar)?", "", command_text, flags=re.IGNORECASE)
+            return cal_id, cleaned_text.strip()
+    return "primary", "mann.talati@gmail.com"
+
 def listen_for_command():
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print("Listening for your command... (you have ~15 seconds)")
         r.adjust_for_ambient_noise(source, duration=1)
-        audio = r.record(source, timeout=10, phrase_time_limit=15)
+        audio = r.listen(source, timeout=10, phrase_time_limit=15)
     try:
         return r.recognize_google(audio)
     except:
@@ -86,12 +106,15 @@ def parse_natural_language_event(command_text):
     if summary:
         event_data["summary"] = summary
 
+    calendar_id, command_text = extract_calendar_id(command_text)
+    event_data["calendar_id"] = calendar_id
+
     return event_data
     
 client = Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 create_event_declaration = {
-    "name": "create_event",
+    "name": "create_new_event",
     "description": "Create a new Google Calendar event.",
     "parameters": {
         "type": "object",
