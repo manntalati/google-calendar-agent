@@ -17,6 +17,8 @@ import soundfile as sf
 
 load_dotenv()
 
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
+
 app = FastAPI(title="Calendar Voice Assistant", version="1.0.0")
 model = whisper.load_model("base")
 
@@ -73,7 +75,7 @@ def extract_calendar_id(command_text: str):
                 rf"\b{alias}\b( calendar)?", "", command_text, flags=re.IGNORECASE
             )
             return cal_id, cleaned_text.strip()
-    return "primary", command_text.strip()
+    return CALENDAR_ALIASES["primary"], command_text.strip()
 
 def listen_for_command():
     print("Listening... (speak now)")
@@ -89,38 +91,44 @@ def listen_for_command():
     text = result["text"].strip()
     return text if text else None
     
-def parse_natural_language_event(command_text):
-    calendar_id, cleaned_text = extract_calendar_id(command_text)
+def parse_natural_language_event(command_text): 
+    calendar_id, cleaned_text = extract_calendar_id(command_text) 
 
-    event_data = {
-        "calendar_id": calendar_id,
-        "summary": "",
-        "start_str": "",
-        "end_str": "",
-        "description": "",
-        "attendees": [],
+    event_data = { 
+        "calendar_id": calendar_id, 
+        "summary": "", 
+        "start_str": "", 
+        "end_str": "", 
+        "description": "", 
+        "attendees": [], 
         "all_day": False
-    }
-
-    attendees_match = re.findall(r'with ([A-Za-z ,]+)', cleaned_text, re.IGNORECASE)
-    if attendees_match:
-        attendees = [a.strip() for a in attendees_match[0].split(',')]
-        event_data["attendees"] = attendees
-        cleaned_text = re.sub(r'with [A-Za-z ,]+', '', cleaned_text, flags=re.IGNORECASE)
-
-    if "all day" in cleaned_text.lower():
-        event_data["all_day"] = True
-
-    dt = dateparser.parse(cleaned_text, settings={'PREFER_DATES_FROM': 'future'})
-    if dt:
-        event_data["start_str"] = dt.isoformat()
-        if not event_data["all_day"]:
-            event_data["end_str"] = (dt + timedelta(hours=1)).isoformat()
-
-    summary = re.sub(r'at \d{1,2}(:\d{2})?\s*(am|pm)?', '', cleaned_text, flags=re.IGNORECASE)
-    event_data["summary"] = summary.strip()
-
+    } 
+    
+    attendees_match = re.findall(r'with ([A-Za-z ,]+)', cleaned_text, re.IGNORECASE) 
+    if attendees_match: 
+        attendees = [a.strip() for a in attendees_match[0].split(',')] 
+        event_data["attendees"] = attendees 
+        cleaned_text = re.sub(r'with [A-Za-z ,]+', '', cleaned_text, flags=re.IGNORECASE) 
+        
+    if "all day" in cleaned_text.lower(): 
+        event_data["all_day"] = True 
+        
+    dt = dateparser.parse(cleaned_text, settings={'PREFER_DATES_FROM': 'future'}) 
+    if dt: 
+        event_data["start_str"] = dt.isoformat() 
+        if not event_data["all_day"]: 
+            event_data["end_str"] = (dt + timedelta(hours=1)).isoformat() 
+            
+    summary = re.sub(r'at \d{1,2}(:\d{2})?\s*(am|pm)?', '', cleaned_text, flags=re.IGNORECASE) 
+    event_data["summary"] = summary.strip() 
     return event_data
+
+def resolve_calendar_id(args):
+    if "calendar_id" in args:
+        alias_lower = args["calendar_id"].lower().replace(" calendar", "").strip()
+        if alias_lower in CALENDAR_ALIASES:
+            args["calendar_id"] = CALENDAR_ALIASES[alias_lower]
+    return args
     
 client = Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
@@ -167,6 +175,7 @@ def agent_handle_command(command_text):
     if func_call:
         tool_name = func_call.name
         args = func_call.args
+        args = resolve_calendar_id(args)
         r = requests.post("http://127.0.0.1:8000/invoke", json={"tool": tool_name, "args": args})
         return r.json()
     else:
@@ -188,7 +197,10 @@ def main():
         command = listen_for_command()
         if not command:
             print("Could not understand command.")
-            continue
+            written = input("Describe the event instead? (y/n): ")
+            if written.lower() != 'y':
+                continue
+            command = input("Event description to be added: ")
         print(f"✅ Heard: {command}")
         confirm = input("Should I create this event? (y/n): ")
         if confirm.lower() != "y":
