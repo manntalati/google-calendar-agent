@@ -111,40 +111,38 @@ def create_new_event(calendar_id, summary, start_str, end_str=None, description=
     print("Error occurred:", e)
     return {"success": False}
   
-def delete_event(calendar_id, event_id=None, summary=None, start_str=None):
+def delete_event(calendar_id, summary=None, start_str=None, end_str=None):
+    if not calendar_id:
+        calendar_id = "primary"
+
+    time_min, time_max = None, None
+    if start_str:
+        start_dt = dateparser.parse(start_str)
+        if not end_str:
+            end_dt = start_dt + timedelta(hours=2)
+        else:
+            end_dt = dateparser.parse(end_str)
+        time_min, time_max = start_dt.isoformat() + "Z", end_dt.isoformat() + "Z"
+
     try:
-        if event_id:
-            service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
-            return {"success": True, "deleted_by": "id"}
-      
-        if not summary:
-            return {"success": False, "error": "Must provide event_id or summary to delete"}
-
-        time_min = None
-        time_max = None
-        if start_str:
-            start_dt = dateparser.parse(start_str)
-            time_min = (start_dt - timedelta(minutes=30)).isoformat() + "Z"
-            time_max = (start_dt + timedelta(minutes=30)).isoformat() + "Z"
-
         events_result = service.events().list(
             calendarId=calendar_id,
-            q=summary,
             timeMin=time_min,
             timeMax=time_max,
-            maxResults=5,
             singleEvents=True,
             orderBy="startTime"
         ).execute()
-
         events = events_result.get("items", [])
+
         if not events:
             return {"success": False, "error": "No matching events found"}
-        
-        ev = events[0]
-        service.events().delete(calendarId=calendar_id, eventId=ev["id"]).execute()
-        return {"success": True, "deleted_by": "search", "eventId": ev["id"], "summary": ev.get("summary")}
 
+        for event in events:
+            if summary and summary.lower() not in event.get("summary", "").lower():
+                continue
+            service.events().delete(calendarId=calendar_id, eventId=event["id"]).execute()
+            return {"success": True, "deleted": event.get("summary")}
+
+        return {"success": False, "error": "No matching events found"}
     except Exception as e:
-        print("Error deleting event:", e)
         return {"success": False, "error": str(e)}

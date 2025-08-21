@@ -224,18 +224,27 @@ def main():
     print("\nPress Ctrl+C to stop the server")
     
     while True:
-        command = None#listen_for_command()
+        command = listen_for_command()
         if not command:
             print("Could not understand command.")
-            written = input("Describe the event instead? (y/n): ")
-            if written.lower() != 'y':
+            written = input("Would you like to type your command instead? (y/n): ")
+            if written.lower() != "y":
                 continue
-            command = input("Event description to be added: ")
+            command = input("What would you like to do? ")
+
         print(f"✅ Heard: {command}")
-        confirm = input("Should I create this event? (y/n): ")
-        if confirm.lower() != "y":
-            continue
-        result = agent_handle_command(command)
+
+        if any(word in command.lower() for word in ["delete", "remove", "cancel"]):
+            confirm = input("⚠️ Do you want me to DELETE this event? (y/n): ")
+            if confirm.lower() != "y":
+                continue
+            result = agent_handle_command(command)
+        else:
+            confirm = input("📅 Do you want me to CREATE this event? (y/n): ")
+            if confirm.lower() != "y":
+                continue
+            result = agent_handle_command(command)
+
         print("Result:", result)
 
 if __name__ == "__main__":
