@@ -4,7 +4,7 @@ from pydantic import BaseModel
 import uvicorn
 import requests
 from google.genai import Client, types
-from google_calendar import create_new_event, get_next_event
+from google_calendar import create_new_event, get_next_event, delete_event
 from dotenv import load_dotenv
 import os
 import re
@@ -45,7 +45,8 @@ def list_tools():
   return {
     "tools": [
         {"name": "create_new_event", "description": "Create a new calendar event"},
-        {"name": "get_next_event", "description": "Get the next event"}
+        {"name": "get_next_event", "description": "Get the next event"},
+        {"name": "delete_event", "description": "Delete an existing calendar event"}
     ]
   }
 
@@ -56,6 +57,8 @@ def invoke_tool(call: ToolCall):
             return create_new_event(**call.args)
         elif call.tool == 'get_next_event':
             return get_next_event(**call.args)
+        elif call.tool == 'delete_event':
+            return delete_event(**call.args)
         else:
             raise HTTPException(status_code=400, detail="Unknown tool")
     except Exception as e:
@@ -156,10 +159,37 @@ get_next_event_declaration = {
     "parameters": {"type": "object", "properties": {}}
 }
 
-tools = types.Tool(function_declarations=[create_event_declaration, get_next_event_declaration])
+delete_event_declaration = {
+    "name": "delete_event",
+    "description": "Delete a Google Calendar event by ID or by searching with summary + start time.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "calendar_id": {"type": "string"},
+            "event_id": {"type": "string"},
+            "summary": {"type": "string"},
+            "start_str": {"type": "string"}
+        },
+        "required": ["calendar_id"]
+    }
+}
+
+tools = types.Tool(function_declarations=[create_event_declaration, get_next_event_declaration, delete_event_declaration])
 config = types.GenerateContentConfig(tools=[tools])
 
 def agent_handle_command(command_text):
+    if any(word in command_text.lower() for word in ["delete", "remove", "cancel"]):
+        calendar_id, cleaned_text = extract_calendar_id(command_text)
+        dt = dateparser.parse(cleaned_text, settings={'PREFER_DATES_FROM': 'future'})
+        args = {
+            "calendar_id": calendar_id,
+            "summary": cleaned_text,
+        }
+        if dt:
+            args["start_str"] = dt.isoformat()
+        r = requests.post("http://127.0.0.1:8000/invoke", json={"tool": "delete_event", "args": args})
+        return r.json()
+
     parsed_event = parse_natural_language_event(command_text)
     if parsed_event.get("summary") and parsed_event.get("start_str"):
         r = requests.post("http://127.0.0.1:8000/invoke",
@@ -194,7 +224,7 @@ def main():
     print("\nPress Ctrl+C to stop the server")
     
     while True:
-        command = listen_for_command()
+        command = None#listen_for_command()
         if not command:
             print("Could not understand command.")
             written = input("Describe the event instead? (y/n): ")
