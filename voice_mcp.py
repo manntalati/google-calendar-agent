@@ -177,24 +177,78 @@ delete_event_declaration = {
 tools = types.Tool(function_declarations=[create_event_declaration, get_next_event_declaration, delete_event_declaration])
 config = types.GenerateContentConfig(tools=[tools])
 
+class AgentContext:
+    def __init__(self):
+        self.last_command = None
+        self.pending_info = None
+        self.last_event_data = None
+
+    def set_command(self, command):
+        self.last_command = command
+        self.pending_info = None
+        self.last_event_data = None
+
+    def set_pending(self, info_type, event_data):
+        self.pending_info = info_type
+        self.last_event_data = event_data
+
+    def update_event_data(self, new_info):
+        if self.last_event_data and self.pending_info:
+            self.last_event_data[self.pending_info] = new_info
+            self.pending_info = None
+            return self.last_event_data
+        return None
+
+context_tracker = AgentContext()
+
 def agent_handle_command(command_text):
+    if context_tracker.pending_info:
+        updated_event = context_tracker.update_event_data(command_text)
+        if updated_event:
+            r = requests.post("http://127.0.0.1:8000/invoke", json={"tool": "create_new_event", "args": updated_event})
+            return r.json()
+
     if any(word in command_text.lower() for word in ["delete", "remove", "cancel"]):
         calendar_id, cleaned_text = extract_calendar_id(command_text)
-        dt = dateparser.parse(cleaned_text, settings={'PREFER_DATES_FROM': 'future'})
+        parsed_event = parse_natural_language_event(command_text)
         args = {
             "calendar_id": calendar_id,
-            "summary": cleaned_text,
+            "summary": parsed_event.get("summary"),
+            "start_str": parsed_event.get("start_str"),
+            "end_str": parsed_event.get("end_str"),
         }
-        if dt:
-            args["start_str"] = dt.isoformat()
         r = requests.post("http://127.0.0.1:8000/invoke", json={"tool": "delete_event", "args": args})
         return r.json()
 
     parsed_event = parse_natural_language_event(command_text)
+    context_tracker.set_command(command_text)
     if parsed_event.get("summary") and parsed_event.get("start_str"):
-        r = requests.post("http://127.0.0.1:8000/invoke",
-                          json={"tool": "create_new_event", "args": parsed_event})
-        return r.json()
+        r = requests.post("http://127.0.0.1:8000/invoke", json={"tool": "create_new_event", "args": parsed_event})
+        result = r.json()
+        if result.get("success") is False and result.get("error") == "Event conflict detected":
+            print("⚠️ Conflict detected with existing event:")
+            print("Summary:", result["conflict"].get("summary"))
+            print("Time:", result["conflict"].get("start"))
+            choice = input("Would you like to (1) create anyway or (2) suggest a new time? Enter 1 or 2: ")
+            if choice == "1":
+                parsed_event["ignore_conflict"] = True
+                r = requests.post("http://127.0.0.1:8000/invoke", json={"tool": "create_new_event", "args": parsed_event})
+                return r.json()
+            elif choice == "2":
+                context_tracker.set_pending("start_str", parsed_event)
+                new_time = input("Please provide a new time for the event: ")
+                updated_event = context_tracker.update_event_data(new_time)
+                r = requests.post("http://127.0.0.1:8000/invoke", json={"tool": "create_new_event", "args": updated_event})
+                return r.json()
+            else:
+                return {"error": "No action taken."}
+        if not parsed_event.get("start_str"):
+            context_tracker.set_pending("start_str", parsed_event)
+            missing = input("I need a time for this event. Please provide: ")
+            updated_event = context_tracker.update_event_data(missing)
+            r = requests.post("http://127.0.0.1:8000/invoke", json={"tool": "create_new_event", "args": updated_event})
+            return r.json()
+        return result
 
     contents = [types.Content(role="user", parts=[types.Part(text=command_text)])]
     response = client.models.generate_content(model="gemini-2.5-flash", contents=contents, config=config)
@@ -224,7 +278,7 @@ def main():
     print("\nPress Ctrl+C to stop the server")
     
     while True:
-        command = listen_for_command()
+        command = None#listen_for_command()
         if not command:
             print("Could not understand command.")
             written = input("Would you like to type your command instead? (y/n): ")
