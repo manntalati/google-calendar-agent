@@ -278,7 +278,7 @@ def main():
     print("\nPress Ctrl+C to stop the server")
     
     while True:
-        command = None#listen_for_command()
+        command = listen_for_command()
         if not command:
             print("Could not understand command.")
             written = input("Would you like to type your command instead? (y/n): ")

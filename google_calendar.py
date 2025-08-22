@@ -6,6 +6,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 import re
+from rapidfuzz import fuzz
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
@@ -145,22 +146,29 @@ def delete_event(calendar_id, summary=None, start_str=None, end_str=None):
     if not calendar_id:
         calendar_id = "primary"
 
-    def clean_summary(text):
-        text = re.sub(r'\b(on|at|tomorrow|today|am|pm|\d{1,2}/\d{1,2}/\d{2,4}|\d{1,2}:\d{2})\b', '', text, flags=re.IGNORECASE)
-        return text.strip()
+    def extract_summary_and_time(text):
+        cleaned = re.sub(r'on [^ ]+ calendar', '', text, flags=re.IGNORECASE)
+        dt = dateparser.parse(cleaned, settings={'PREFER_DATES_FROM': 'future'})
+        summary = re.sub(r'at \d{1,2}(:\d{2})?\s*(am|pm)?', '', cleaned, flags=re.IGNORECASE)
+        summary = re.sub(r'tomorrow|today|on \d{1,2}/\d{1,2}/\d{2,4}', '', summary, flags=re.IGNORECASE)
+        summary = summary.strip()
+        return summary, dt
 
-    if summary:
-        summary = clean_summary(summary)
+    if summary and (not start_str):
+        summary, dt = extract_summary_and_time(summary)
+        if dt:
+            start_str = dt.isoformat()
 
-    time_min, time_max = None, None
+    now = datetime.utcnow().isoformat() + "Z"
+    time_min = now
+    time_max = None
     if start_str:
         start_dt = dateparser.parse(start_str)
         if not end_str:
             end_dt = start_dt + timedelta(hours=1)
         else:
             end_dt = dateparser.parse(end_str)
-        
-        time_min = (start_dt - timedelta(hours=1)).isoformat() + "Z"
+        time_min = start_dt.isoformat() + "Z"
         time_max = (end_dt + timedelta(hours=1)).isoformat() + "Z"
 
     try:
@@ -175,24 +183,12 @@ def delete_event(calendar_id, summary=None, start_str=None, end_str=None):
 
         matching_events = []
         for event in events:
-            ev_summary = event.get("summary", "")
+            ev_summary = event.get("summary", "").strip().lower()
             if summary:
-                if summary.lower() in ev_summary.lower():
+                if fuzz.partial_ratio(ev_summary, summary) > 60:
                     matching_events.append(event)
             else:
                 matching_events.append(event)
-
-        if not matching_events:
-            if not time_min and not time_max and summary:
-                all_events = service.events().list(
-                    calendarId=calendar_id,
-                    singleEvents=True,
-                    orderBy="startTime"
-                ).execute().get("items", [])
-                for event in all_events:
-                    ev_summary = event.get("summary", "")
-                    if summary.lower() in ev_summary.lower():
-                        matching_events.append(event)
 
         if not matching_events:
             return {"success": False, "error": "No matching events found"}

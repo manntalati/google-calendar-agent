@@ -3,3 +3,4 @@ virtualenv/
 token.json
 .env
 __pycache__/
+test.py
