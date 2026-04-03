@@ -5,7 +5,7 @@ SpeechRecognition
 fastapi
 uvicorn
 google-genai
-glcoud
+google-cloud
 python-dotenv
 PyAudio
 dateparser
@@ -15,3 +15,5 @@ sounddevice
 scipy
 soundfile
 rapidfuzz
+beautifulsoup4
+slack-sdk
