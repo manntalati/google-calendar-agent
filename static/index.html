@@ -619,10 +619,64 @@ function renderEventCard(args) {
 function renderResult(tool, result, args, calName) {
   if (!result) return '<div style="color:var(--text-dim)">No result returned.</div>';
 
-  // Debug: log what we got
   console.log('renderResult:', { tool, result, args });
 
-  // Success create/update/delete (use loose equality for Gemini MapComposite)
+  // --- Tool-specific rendering (check BEFORE generic success) ---
+
+  // List events
+  if (tool === 'list_events') {
+    if (result.events && result.events.length) {
+      let html = `<div style="font-size:14px;color:var(--text-dim);margin-bottom:4px">${result.events.length} event(s)</div><div class="event-list">`;
+      for (const ev of result.events) {
+        const loc = ev.location ? `<div class="eli-loc">${escHtml(ev.location)}</div>` : '';
+        html += `<div class="event-list-item">
+          <div class="eli-title">${escHtml(ev.summary || '(No title)')}</div>
+          <div class="eli-time">${fmtTime(ev.start)} - ${fmtTimeShort(ev.end)}</div>
+          ${loc}
+        </div>`;
+      }
+      html += '</div>';
+      return html;
+    }
+    return '<div style="color:var(--text-dim)">No events found in that range.</div>';
+  }
+
+  // Free slots
+  if (tool === 'find_free_slots') {
+    if (result.free_slots && result.free_slots.length) {
+      let html = `<div style="font-size:14px;margin-bottom:6px">${result.free_slots.length} free slot(s)</div><div class="event-list">`;
+      for (const s of result.free_slots.slice(0, 8)) {
+        html += `<div class="free-slot">${fmtTime(s.start)} - ${fmtTimeShort(s.end)} (${s.duration_minutes} min)</div>`;
+      }
+      html += '</div>';
+      return html;
+    }
+    return '<div style="color:var(--text-dim)">No free slots found.</div>';
+  }
+
+  // Suggest next free slot
+  if (tool === 'suggest_next_free_slot') {
+    if (result.suggested_slot) {
+      const s = result.suggested_slot;
+      return `<div>Next free slot:</div><div class="free-slot" style="margin-top:6px">${fmtTime(s.start)} (${s.duration_minutes} min available)</div>`;
+    }
+    return '<div style="color:var(--text-dim)">No free slots found.</div>';
+  }
+
+  // Get next event
+  if (tool === 'get_next_event') {
+    if (result.summary) {
+      return `<div style="font-size:14px;color:var(--text-dim);margin-bottom:4px">Next event</div>
+        <div class="event-list-item">
+          <div class="eli-title">${escHtml(result.summary)}</div>
+          <div class="eli-time">${fmtTime(result.start)}</div>
+          <div class="eli-loc">${escHtml(result.calendar || '')}</div>
+        </div>`;
+    }
+    return '<div style="color:var(--text-dim)">No upcoming events.</div>';
+  }
+
+  // --- Generic success for create/update/delete ---
   if (result.success == true) {
     let html = '';
     if (tool === 'create_new_event') {
@@ -637,56 +691,8 @@ function renderResult(tool, result, args, calName) {
     } else if (tool === 'delete_event') {
       html = `<span class="success-badge">Event deleted</span>`;
       if (result.deleted) html += `<div style="margin-top:6px">${escHtml(result.deleted)}</div>`;
-    } else {
-      html = `<span class="success-badge">Done</span>`;
     }
     if (html) return html;
-  }
-
-  // List events
-  if (tool === 'list_events' && result.events) {
-    if (!result.events.length) return '<div style="color:var(--text-dim)">No events found in that range.</div>';
-    let html = `<div style="font-size:14px;color:var(--text-dim);margin-bottom:4px">${result.events.length} event(s)</div><div class="event-list">`;
-    for (const ev of result.events) {
-      const loc = ev.location ? `<div class="eli-loc">${escHtml(ev.location)}</div>` : '';
-      html += `<div class="event-list-item">
-        <div class="eli-title">${escHtml(ev.summary || '(No title)')}</div>
-        <div class="eli-time">${fmtTime(ev.start)} - ${fmtTimeShort(ev.end)}</div>
-        ${loc}
-      </div>`;
-    }
-    html += '</div>';
-    return html;
-  }
-
-  // Free slots
-  if (tool === 'find_free_slots' && result.free_slots) {
-    if (!result.free_slots.length) return '<div style="color:var(--text-dim)">No free slots found.</div>';
-    let html = `<div style="font-size:14px;margin-bottom:6px">${result.free_slots.length} free slot(s)</div><div class="event-list">`;
-    for (const s of result.free_slots.slice(0, 8)) {
-      html += `<div class="free-slot">${fmtTime(s.start)} - ${fmtTimeShort(s.end)} (${s.duration_minutes} min)</div>`;
-    }
-    html += '</div>';
-    return html;
-  }
-
-  // Suggest next free slot
-  if (tool === 'suggest_next_free_slot' && result.suggested_slot) {
-    const s = result.suggested_slot;
-    return `<div>Next free slot:</div><div class="free-slot" style="margin-top:6px">${fmtTime(s.start)} (${s.duration_minutes} min available)</div>`;
-  }
-
-  // Get next event
-  if (tool === 'get_next_event') {
-    if (result.summary) {
-      return `<div style="font-size:14px;color:var(--text-dim);margin-bottom:4px">Next event</div>
-        <div class="event-list-item">
-          <div class="eli-title">${escHtml(result.summary)}</div>
-          <div class="eli-time">${fmtTime(result.start)}</div>
-          <div class="eli-loc">${escHtml(result.calendar || '')}</div>
-        </div>`;
-    }
-    return '<div style="color:var(--text-dim)">No upcoming events.</div>';
   }
 
   // Error

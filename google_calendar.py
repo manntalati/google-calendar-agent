@@ -112,7 +112,9 @@ def get_next_event():
                     "id": event[0]["id"]
                 }
 
-    return next_event
+    if next_event:
+        return next_event
+    return {"summary": None, "start": None, "calendar": None, "id": None}
 
 
 # --- Free/busy and slot finding ---

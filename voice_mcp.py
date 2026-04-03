@@ -522,10 +522,12 @@ def gemini_parse(command_text):
     if not response.candidates:
         return None
     candidate = response.candidates[0]
+    if not candidate.content or not candidate.content.parts:
+        return None
     part = candidate.content.parts[0]
     if hasattr(part, 'function_call') and part.function_call:
         func_call = part.function_call
-        args = dict(func_call.args)
+        args = dict(func_call.args) if func_call.args else {}
         args = resolve_calendar_id(args)
         return func_call.name, args
     return None
