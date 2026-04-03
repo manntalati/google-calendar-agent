@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import dateparser
@@ -9,6 +9,28 @@ from googleapiclient.discovery import build
 import re
 from rapidfuzz import fuzz
 import uuid
+
+
+def utcnow():
+    """Return timezone-aware UTC datetime."""
+    return datetime.now(timezone.utc)
+
+
+def make_aware(dt):
+    """Ensure a datetime is timezone-aware (assume UTC if naive)."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def parse_dt(s, **kwargs):
+    """Parse a datetime string and ensure it's timezone-aware."""
+    if not s:
+        return None
+    dt = dateparser.parse(str(s), settings={"RETURN_AS_TIMEZONE_AWARE": True, **kwargs})
+    return make_aware(dt) if dt else None
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
@@ -43,21 +65,21 @@ def normalize_event_time(start_str, end_str=None, all_day=False, tz=None):
         tz = TIMEZONE
 
     if all_day:
-        start_date = dateparser.parse(start_str).date()
+        start_date = parse_dt(start_str).date()
         if not end_str:
             end_date = start_date + timedelta(days=1)
         else:
-            end_date = dateparser.parse(end_str).date()
+            end_date = parse_dt(end_str).date()
         return (
             {"date": start_date.isoformat()},
             {"date": end_date.isoformat()}
         )
 
-    start_dt = dateparser.parse(start_str, settings={"RETURN_AS_TIMEZONE_AWARE": True})
+    start_dt = parse_dt(start_str)
     if not end_str:
         end_dt = start_dt + timedelta(hours=1)
     else:
-        end_dt = dateparser.parse(end_str, settings={"RETURN_AS_TIMEZONE_AWARE": True})
+        end_dt = parse_dt(end_str)
 
     return (
         {"dateTime": start_dt.isoformat(), "timeZone": tz},
@@ -67,7 +89,7 @@ def normalize_event_time(start_str, end_str=None, all_day=False, tz=None):
 
 def get_next_event():
     calendars = service.calendarList().list().execute().get("items", [])
-    now = datetime.utcnow().isoformat() + 'Z'
+    now = utcnow().isoformat()
     next_event, next_start = None, None
     for calendar in calendars:
         event = service.events().list(
@@ -97,8 +119,8 @@ def get_next_event():
 
 def find_free_slots(start_str, end_str, duration_minutes=60):
     """Find free time slots in a date range across all calendars."""
-    start_dt = dateparser.parse(start_str, settings={"RETURN_AS_TIMEZONE_AWARE": True})
-    end_dt = dateparser.parse(end_str, settings={"RETURN_AS_TIMEZONE_AWARE": True})
+    start_dt = parse_dt(start_str)
+    end_dt = parse_dt(end_str)
 
     if not start_dt or not end_dt:
         return {"success": False, "error": "Could not parse date range"}
@@ -162,7 +184,7 @@ def find_free_slots(start_str, end_str, duration_minutes=60):
 
 def suggest_next_free_slot(start_str, duration_minutes=60):
     """Find the next available slot starting from a given time."""
-    start_dt = dateparser.parse(start_str, settings={"RETURN_AS_TIMEZONE_AWARE": True})
+    start_dt = parse_dt(start_str)
     if not start_dt:
         return {"success": False, "error": "Could not parse start time"}
 
@@ -194,20 +216,19 @@ def suggest_next_free_slot(start_str, duration_minutes=60):
 def list_events(calendar_id=None, start_str=None, end_str=None, max_results=50):
     """List events in a date range. If no calendar_id, searches all calendars."""
     if not start_str:
-        time_min = datetime.utcnow().isoformat() + "Z"
+        time_min = utcnow().isoformat()
     else:
-        dt = dateparser.parse(start_str, settings={"RETURN_AS_TIMEZONE_AWARE": True})
+        dt = parse_dt(start_str)
         time_min = dt.isoformat()
 
     if not end_str:
-        # Default to end of the day if only start given, or 7 days out if nothing given
         if start_str:
-            dt = dateparser.parse(start_str, settings={"RETURN_AS_TIMEZONE_AWARE": True})
+            dt = parse_dt(start_str)
             time_max = (dt.replace(hour=23, minute=59, second=59)).isoformat()
         else:
-            time_max = (datetime.utcnow() + timedelta(days=7)).isoformat() + "Z"
+            time_max = (utcnow() + timedelta(days=7)).isoformat()
     else:
-        dt_end = dateparser.parse(end_str, settings={"RETURN_AS_TIMEZONE_AWARE": True})
+        dt_end = parse_dt(end_str)
         time_max = dt_end.isoformat()
 
     calendar_ids = []
@@ -275,15 +296,15 @@ def create_new_event(calendar_id, summary, start_str, end_str=None, description=
     start, end = normalize_event_time(start_str, end_str, all_day)
 
     if all_day:
-        start_dt = dateparser.parse(start_str)
-        end_dt = dateparser.parse(end_str) if end_str else start_dt + timedelta(days=1)
+        start_dt = parse_dt(start_str)
+        end_dt = parse_dt(end_str) if end_str else start_dt + timedelta(days=1)
     else:
-        start_dt = dateparser.parse(start_str)
-        end_dt = dateparser.parse(end_str) if end_str else start_dt + timedelta(hours=1)
+        start_dt = parse_dt(start_str)
+        end_dt = parse_dt(end_str) if end_str else start_dt + timedelta(hours=1)
 
     if not ignore_conflict and not all_day:
-        time_min = (start_dt - timedelta(minutes=5)).isoformat() + "Z"
-        time_max = (end_dt + timedelta(minutes=5)).isoformat() + "Z"
+        time_min = (start_dt - timedelta(minutes=5)).isoformat()
+        time_max = (end_dt + timedelta(minutes=5)).isoformat()
         try:
             events_result = service.events().list(
                 calendarId=calendar_id,
@@ -296,8 +317,8 @@ def create_new_event(calendar_id, summary, start_str, end_str=None, description=
             for event in events:
                 ev_start = event["start"].get("dateTime", event["start"].get("date"))
                 ev_end = event["end"].get("dateTime", event["end"].get("date"))
-                ev_start_dt = dateparser.parse(ev_start)
-                ev_end_dt = dateparser.parse(ev_end)
+                ev_start_dt = parse_dt(ev_start)
+                ev_end_dt = parse_dt(ev_end)
                 if ev_start_dt and ev_end_dt and events_overlap(start_dt, end_dt, ev_start_dt, ev_end_dt):
                     return {"success": False, "error": "Event conflict detected", "conflict": {
                         "summary": event.get("summary"),
@@ -393,14 +414,14 @@ def update_event(calendar_id, event_id=None, summary_search=None, start_str_sear
             return {"success": False, "error": f"Event not found: {str(e)}"}
     elif summary_search:
         # Fuzzy search for the event
-        now = datetime.utcnow().isoformat() + "Z"
-        time_min = now
+        now_str = utcnow().isoformat()
+        time_min = now_str
         time_max = None
         if start_str_search:
-            dt = dateparser.parse(start_str_search)
+            dt = parse_dt(start_str_search)
             if dt:
-                time_min = (dt - timedelta(hours=12)).isoformat() + "Z"
-                time_max = (dt + timedelta(hours=12)).isoformat() + "Z"
+                time_min = (dt - timedelta(hours=12)).isoformat()
+                time_max = (dt + timedelta(hours=12)).isoformat()
 
         try:
             kwargs = {
@@ -498,7 +519,7 @@ def delete_event(calendar_id, summary=None, start_str=None, end_str=None):
 
     def extract_summary_and_time(text):
         cleaned = re.sub(r'on [^ ]+ calendar', '', text, flags=re.IGNORECASE)
-        dt = dateparser.parse(cleaned, settings={'PREFER_DATES_FROM': 'future'})
+        dt = parse_dt(cleaned, PREFER_DATES_FROM='future')
         summary = re.sub(r'at \d{1,2}(:\d{2})?\s*(am|pm)?', '', cleaned, flags=re.IGNORECASE)
         summary = re.sub(r'tomorrow|today|on \d{1,2}/\d{1,2}/\d{2,4}', '', summary, flags=re.IGNORECASE)
         summary = summary.strip()
@@ -509,17 +530,16 @@ def delete_event(calendar_id, summary=None, start_str=None, end_str=None):
         if dt:
             start_str = dt.isoformat()
 
-    now = datetime.utcnow().isoformat() + "Z"
-    time_min = now
+    time_min = utcnow().isoformat()
     time_max = None
     if start_str:
-        start_dt = dateparser.parse(start_str)
+        start_dt = parse_dt(start_str)
         if not end_str:
             end_dt = start_dt + timedelta(hours=1)
         else:
-            end_dt = dateparser.parse(end_str)
-        time_min = start_dt.isoformat() + "Z"
-        time_max = (end_dt + timedelta(hours=1)).isoformat() + "Z"
+            end_dt = parse_dt(end_str)
+        time_min = start_dt.isoformat()
+        time_max = (end_dt + timedelta(hours=1)).isoformat()
 
     try:
         events_result = service.events().list(
