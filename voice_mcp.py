@@ -177,6 +177,112 @@ def serve_frontend():
     with open(html_path) as f:
         return f.read()
 
+
+# --- Integration endpoints ---
+
+class PrairieTestRequest(BaseModel):
+    url: str
+    calendar: str
+
+class PrairieLearnRequest(BaseModel):
+    url: str
+    calendar: str
+
+class SlackScanRequest(BaseModel):
+    channel: str
+    lookback_hours: int = 24
+
+@app.post('/integrations/prairietest')
+def sync_prairietest_api(req: PrairieTestRequest):
+    """Sync PrairieTest exam reservations to a calendar."""
+    try:
+        # Resolve calendar alias to ID
+        cal_id = CALENDAR_ALIASES.get(req.calendar, req.calendar)
+
+        # Try to import the integration module
+        try:
+            from integrations.prairietest import fetch_exams
+            exams = fetch_exams(req.url)
+        except ImportError:
+            return {
+                "success": False,
+                "error": "PrairieTest integration not yet configured. Add your session credentials to config.json and create integrations/prairietest.py"
+            }
+
+        created = []
+        for exam in exams:
+            result = create_new_event(
+                calendar_id=cal_id,
+                summary=f"[EXAM] {exam['name']}",
+                start_str=exam["start"],
+                end_str=exam.get("end"),
+                location=exam.get("location", "CBTF"),
+                reminders=[
+                    {"method": "popup", "minutes": 1440},  # 1 day
+                    {"method": "popup", "minutes": 60},     # 1 hour
+                ],
+                ignore_conflict=True,
+            )
+            if result.get("success"):
+                created.append(exam)
+
+        return {"success": True, "exams": created, "count": len(created)}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post('/integrations/prairielearn')
+def sync_prairielearn_api(req: PrairieLearnRequest):
+    """Sync PrairieLearn deadlines to a calendar."""
+    try:
+        cal_id = CALENDAR_ALIASES.get(req.calendar, req.calendar)
+
+        try:
+            from integrations.prairielearn import fetch_deadlines
+            deadlines = fetch_deadlines(req.url)
+        except ImportError:
+            return {
+                "success": False,
+                "error": "PrairieLearn integration not yet configured. Add your session credentials to config.json and create integrations/prairielearn.py"
+            }
+
+        created = []
+        for dl in deadlines:
+            result = create_new_event(
+                calendar_id=cal_id,
+                summary=f"[DUE] {dl['name']}",
+                start_str=dl["due_date"],
+                end_str=dl.get("due_date"),  # Point event at deadline
+                reminders=[
+                    {"method": "popup", "minutes": 1440},  # 1 day
+                    {"method": "popup", "minutes": 120},    # 2 hours
+                ],
+                ignore_conflict=True,
+            )
+            if result.get("success"):
+                created.append(dl)
+
+        return {"success": True, "deadlines": created, "count": len(created)}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.post('/integrations/slack')
+def scan_slack_api(req: SlackScanRequest):
+    """Scan a Slack channel for scheduling messages."""
+    try:
+        try:
+            from integrations.slack import scan_channel_for_events
+            events = scan_channel_for_events(req.channel, req.lookback_hours)
+        except ImportError:
+            return {
+                "success": False,
+                "error": "Slack integration not yet configured. Add your slack_bot_token to config.json and create integrations/slack.py"
+            }
+
+        return {"success": True, "events": events, "count": len(events)}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 def run_server():
     uvicorn.run(app, host="0.0.0.0", port=8000)
 

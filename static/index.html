@@ -19,6 +19,8 @@
     --green: #34d399;
     --red: #f87171;
     --yellow: #fbbf24;
+    --orange: #fb923c;
+    --purple: #a78bfa;
     --radius: 16px;
   }
 
@@ -44,34 +46,47 @@
     justify-content: space-between;
     flex-shrink: 0;
   }
-  .header h1 {
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-  }
+  .header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
   .header .status {
-    font-size: 12px;
-    color: var(--green);
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    font-size: 12px; color: var(--green);
+    display: flex; align-items: center; gap: 6px;
   }
   .header .status::before {
-    content: '';
-    width: 7px;
-    height: 7px;
-    background: var(--green);
-    border-radius: 50%;
-    display: inline-block;
+    content: ''; width: 7px; height: 7px;
+    background: var(--green); border-radius: 50%;
   }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:active { background: var(--surface2); }
+
+  /* Tab content */
+  .tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .tab-content.active { display: flex; }
 
   /* Quick actions */
   .quick-actions {
     padding: 12px 20px;
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    flex-shrink: 0;
+    display: flex; gap: 8px;
+    overflow-x: auto; flex-shrink: 0;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -92,12 +107,9 @@
 
   /* Messages area */
   .messages {
-    flex: 1;
-    overflow-y: auto;
+    flex: 1; overflow-y: auto;
     padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: flex; flex-direction: column; gap: 12px;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -105,16 +117,15 @@
     max-width: 88%;
     padding: 12px 16px;
     border-radius: var(--radius);
-    font-size: 15px;
-    line-height: 1.5;
+    font-size: 15px; line-height: 1.5;
     animation: fadeIn 0.2s ease;
+    word-wrap: break-word;
   }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   .msg.user {
     align-self: flex-end;
-    background: var(--accent);
-    color: white;
+    background: var(--accent); color: white;
     border-bottom-right-radius: 4px;
   }
   .msg.bot {
@@ -123,128 +134,68 @@
     border: 1px solid var(--border);
     border-bottom-left-radius: 4px;
   }
-  .msg.bot.error {
-    border-color: var(--red);
-    background: #1a0f0f;
-  }
-  .msg.bot.conflict {
-    border-color: var(--yellow);
-    background: #1a1708;
-  }
+  .msg.bot.error { border-color: var(--red); background: #1a0f0f; }
+  .msg.bot.conflict { border-color: var(--yellow); background: #1a1708; }
 
-  /* Event cards inside messages */
+  /* Event cards */
   .event-card {
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 12px;
-    margin-top: 8px;
-    font-size: 14px;
+    padding: 12px; margin-top: 8px; font-size: 14px;
   }
-  .event-card .ev-title {
-    font-weight: 600;
-    font-size: 15px;
-    margin-bottom: 6px;
-  }
+  .event-card .ev-title { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
   .event-card .ev-row {
-    display: flex;
-    gap: 8px;
-    padding: 3px 0;
-    color: var(--text-dim);
+    display: flex; gap: 8px; padding: 3px 0; color: var(--text-dim);
   }
   .event-card .ev-row .label {
-    min-width: 70px;
-    color: var(--text-dim);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    min-width: 70px; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
   }
-  .event-card .ev-row .value {
-    color: var(--text);
-  }
+  .event-card .ev-row .value { color: var(--text); }
 
-  /* Event list items */
-  .event-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 8px;
-  }
+  /* Event list */
+  .event-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
   .event-list-item {
     background: var(--surface2);
-    border-radius: 10px;
-    padding: 10px 12px;
+    border-radius: 10px; padding: 10px 12px;
     border-left: 3px solid var(--accent);
   }
-  .event-list-item .eli-title {
-    font-weight: 500;
-    font-size: 14px;
-  }
-  .event-list-item .eli-time {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 2px;
-  }
-  .event-list-item .eli-loc {
-    font-size: 12px;
-    color: var(--text-dim);
-  }
+  .event-list-item .eli-title { font-weight: 500; font-size: 14px; }
+  .event-list-item .eli-time { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .event-list-item .eli-loc { font-size: 12px; color: var(--text-dim); }
 
-  /* Free slots */
   .free-slot {
     background: var(--surface2);
-    border-radius: 10px;
-    padding: 8px 12px;
-    border-left: 3px solid var(--green);
-    font-size: 13px;
+    border-radius: 10px; padding: 8px 12px;
+    border-left: 3px solid var(--green); font-size: 13px;
+    margin-top: 4px;
   }
 
-  /* Success badge */
   .success-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #0d2818;
-    border: 1px solid #1a4d2e;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #0d2818; border: 1px solid #1a4d2e;
     color: var(--green);
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
+    padding: 6px 12px; border-radius: 8px;
+    font-size: 13px; font-weight: 500;
   }
 
   /* Conflict actions */
-  .conflict-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-    flex-wrap: wrap;
-  }
+  .conflict-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   .conflict-btn {
-    padding: 8px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: var(--text);
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s;
+    padding: 8px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text); font-size: 13px;
+    cursor: pointer; transition: all 0.15s;
   }
   .conflict-btn:active { background: var(--accent-dim); }
   .conflict-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
 
   /* Loading */
-  .loading {
-    display: flex;
-    gap: 4px;
-    padding: 16px;
-    align-self: flex-start;
-  }
+  .loading { display: flex; gap: 4px; padding: 16px; align-self: flex-start; }
   .loading span {
-    width: 8px;
-    height: 8px;
-    background: var(--text-dim);
-    border-radius: 50%;
+    width: 8px; height: 8px;
+    background: var(--text-dim); border-radius: 50%;
     animation: bounce 1.2s infinite;
   }
   .loading span:nth-child(2) { animation-delay: 0.2s; }
@@ -259,72 +210,181 @@
     padding: 12px 16px;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
+    background: var(--surface); flex-shrink: 0;
   }
-  .input-row {
-    display: flex;
-    gap: 10px;
-    align-items: flex-end;
-  }
+  .input-row { display: flex; gap: 10px; align-items: flex-end; }
   .input-row textarea {
-    flex: 1;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px 16px;
-    color: var(--text);
-    font-size: 16px;
-    font-family: inherit;
-    resize: none;
-    outline: none;
-    min-height: 44px;
-    max-height: 120px;
-    line-height: 1.4;
-    transition: border-color 0.15s;
+    flex: 1; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 16px; color: var(--text);
+    font-size: 16px; font-family: inherit;
+    resize: none; outline: none;
+    min-height: 44px; max-height: 120px;
+    line-height: 1.4; transition: border-color 0.15s;
   }
   .input-row textarea:focus { border-color: var(--accent); }
   .input-row textarea::placeholder { color: var(--text-dim); }
 
   .send-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.15s;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--accent); border: none;
+    cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.15s;
   }
   .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
   .send-btn:active:not(:disabled) { transform: scale(0.92); }
   .send-btn svg { width: 20px; height: 20px; fill: white; }
 
-  /* Link */
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
 
   /* Welcome */
   .welcome {
-    flex: 1;
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px; color: var(--text-dim);
+    text-align: center; padding: 40px;
+  }
+  .welcome h2 { color: var(--text); font-size: 22px; font-weight: 600; }
+  .welcome p { font-size: 14px; line-height: 1.6; }
+
+  /* Integration panel */
+  .integrations {
+    flex: 1; overflow-y: auto;
+    padding: 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .int-section {
+    margin-bottom: 24px;
+  }
+  .int-section h3 {
+    font-size: 16px; font-weight: 600;
+    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .int-section p {
+    font-size: 13px; color: var(--text-dim);
+    margin-bottom: 12px; line-height: 1.5;
+  }
+  .int-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .int-badge.pl { background: #1a2a1a; color: var(--green); }
+  .int-badge.pt { background: #2a1a1a; color: var(--orange); }
+  .int-badge.sl { background: #1a1a2a; color: var(--purple); }
+
+  .int-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .int-card-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 10px;
+  }
+  .int-card-title { font-size: 14px; font-weight: 500; }
+
+  .int-btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    width: 100%;
+    text-align: center;
+  }
+  .int-btn:active { background: var(--accent-dim); border-color: var(--accent); }
+  .int-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .int-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .int-btn.primary:active { background: #3a8eef; }
+
+  .int-status {
+    margin-top: 10px;
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    display: none;
+  }
+  .int-status.show { display: block; }
+  .int-status.success { background: #0d2818; color: var(--green); border: 1px solid #1a4d2e; }
+  .int-status.error { background: #1a0f0f; color: var(--red); border: 1px solid #4d1a1a; }
+  .int-status.loading { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+
+  .int-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    width: 100%;
+    margin-bottom: 10px;
+    transition: border-color 0.15s;
+  }
+  .int-input:focus { border-color: var(--accent); }
+  .int-input::placeholder { color: var(--text-dim); }
+
+  .int-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    width: 100%;
+    margin-bottom: 10px;
+    appearance: none;
+    cursor: pointer;
+  }
+  .int-select:focus { border-color: var(--accent); }
+
+  .int-results {
+    margin-top: 12px;
     display: flex;
     flex-direction: column;
+    gap: 6px;
+  }
+  .int-result-item {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    color: var(--text-dim);
-    text-align: center;
-    padding: 40px;
+    gap: 10px;
   }
-  .welcome h2 {
-    color: var(--text);
-    font-size: 22px;
-    font-weight: 600;
+  .int-result-info { flex: 1; min-width: 0; }
+  .int-result-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .int-result-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .int-add-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    flex-shrink: 0;
   }
-  .welcome p { font-size: 14px; line-height: 1.6; }
+  .int-add-btn:active { background: var(--accent); color: white; }
+  .int-add-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -334,40 +394,143 @@
   <div class="status">Connected</div>
 </div>
 
-<div class="quick-actions">
-  <button class="quick-btn" onclick="sendQuick('What do I have today?')">Today</button>
-  <button class="quick-btn" onclick="sendQuick('What do I have tomorrow?')">Tomorrow</button>
-  <button class="quick-btn" onclick="sendQuick('Show me this week')">This Week</button>
-  <button class="quick-btn" onclick="sendQuick('What is my next event?')">Next Event</button>
-  <button class="quick-btn" onclick="sendQuick('When am I free tomorrow?')">Free Slots</button>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('chat', this)">Chat</button>
+  <button class="tab" onclick="switchTab('integrations', this)">Integrations</button>
 </div>
 
-<div class="messages" id="messages">
-  <div class="welcome" id="welcome">
-    <h2>What's on your calendar?</h2>
-    <p>Type a command like "Team meeting tomorrow at 2pm" or tap a quick action above.</p>
+<!-- Chat Tab -->
+<div class="tab-content active" id="tab-chat">
+  <div class="quick-actions">
+    <button class="quick-btn" onclick="sendQuick('What do I have today?')">Today</button>
+    <button class="quick-btn" onclick="sendQuick('What do I have tomorrow?')">Tomorrow</button>
+    <button class="quick-btn" onclick="sendQuick('Show me this week')">This Week</button>
+    <button class="quick-btn" onclick="sendQuick('What is my next event?')">Next Event</button>
+    <button class="quick-btn" onclick="sendQuick('When am I free tomorrow?')">Free Slots</button>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <h2>What's on your calendar?</h2>
+      <p>Type a command like "Team meeting tomorrow at 2pm" or tap a quick action above.</p>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <textarea id="input" rows="1" placeholder="Add an event, check your schedule..."
+        oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="send()" disabled>
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
   </div>
 </div>
 
-<div class="input-area">
-  <div class="input-row">
-    <textarea id="input" rows="1" placeholder="Add an event, check your schedule..."
-      oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
-    <button class="send-btn" id="sendBtn" onclick="send()" disabled>
-      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-    </button>
+<!-- Integrations Tab -->
+<div class="tab-content" id="tab-integrations">
+  <div class="integrations">
+
+    <!-- PrairieTest -->
+    <div class="int-section">
+      <h3>PrairieTest <span class="int-badge pt">Exams</span></h3>
+      <p>Pull your scheduled CBTF exam reservations and add them to your course calendars automatically.</p>
+      <div class="int-card">
+        <input class="int-input" id="pt-url" type="text" placeholder="PrairieTest URL (e.g. https://us.prairietest.com)">
+        <select class="int-select" id="pt-calendar">
+          <option value="">Select target calendar...</option>
+        </select>
+        <button class="int-btn primary" id="pt-sync-btn" onclick="syncPrairieTest()">
+          Sync Exams to Calendar
+        </button>
+        <div class="int-status" id="pt-status"></div>
+        <div class="int-results" id="pt-results"></div>
+      </div>
+    </div>
+
+    <!-- PrairieLearn -->
+    <div class="int-section">
+      <h3>PrairieLearn <span class="int-badge pl">Deadlines</span></h3>
+      <p>Import homework and quiz deadlines from PrairieLearn into your calendar with automatic reminders.</p>
+      <div class="int-card">
+        <input class="int-input" id="pl-url" type="text" placeholder="PrairieLearn course URL">
+        <select class="int-select" id="pl-calendar">
+          <option value="">Select target calendar...</option>
+        </select>
+        <button class="int-btn primary" id="pl-sync-btn" onclick="syncPrairieLearn()">
+          Sync Deadlines to Calendar
+        </button>
+        <div class="int-status" id="pl-status"></div>
+        <div class="int-results" id="pl-results"></div>
+      </div>
+    </div>
+
+    <!-- Slack -->
+    <div class="int-section">
+      <h3>Slack <span class="int-badge sl">Events</span></h3>
+      <p>Scan Slack channels for meeting requests, scheduling messages, and events to add to your calendar.</p>
+      <div class="int-card">
+        <input class="int-input" id="sl-channel" type="text" placeholder="Channel name (e.g. #team-general)">
+        <select class="int-select" id="sl-lookback">
+          <option value="6">Last 6 hours</option>
+          <option value="12">Last 12 hours</option>
+          <option value="24" selected>Last 24 hours</option>
+          <option value="48">Last 48 hours</option>
+        </select>
+        <button class="int-btn primary" id="sl-scan-btn" onclick="scanSlack()">
+          Scan for Events
+        </button>
+        <div class="int-status" id="sl-status"></div>
+        <div class="int-results" id="sl-results"></div>
+      </div>
+    </div>
+
+    <!-- Manual Quick Add -->
+    <div class="int-section">
+      <h3>Quick Add</h3>
+      <p>Quickly add a test, deadline, or event with one tap.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="quick-btn" onclick="quickAdd('exam')" style="border-color:var(--orange)">+ Exam</button>
+        <button class="quick-btn" onclick="quickAdd('homework')" style="border-color:var(--green)">+ Homework Due</button>
+        <button class="quick-btn" onclick="quickAdd('quiz')" style="border-color:var(--purple)">+ Quiz</button>
+        <button class="quick-btn" onclick="quickAdd('meeting')" style="border-color:var(--accent)">+ Meeting</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <script>
+const API = window.location.origin;
 const messagesEl = document.getElementById('messages');
 const inputEl = document.getElementById('input');
 const sendBtn = document.getElementById('sendBtn');
 const welcomeEl = document.getElementById('welcome');
 
-inputEl.addEventListener('input', () => {
-  sendBtn.disabled = !inputEl.value.trim();
-});
+// Tab switching
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'integrations') loadCalendarDropdowns();
+}
+
+// Load calendar options into dropdowns
+async function loadCalendarDropdowns() {
+  try {
+    const res = await fetch(API + '/calendars');
+    const data = await res.json();
+    const cals = data.calendars || {};
+    const options = Object.keys(cals).map(k => `<option value="${k}">${k}</option>`).join('');
+    const defaultOpt = '<option value="">Select target calendar...</option>';
+    document.getElementById('pt-calendar').innerHTML = defaultOpt + options;
+    document.getElementById('pl-calendar').innerHTML = defaultOpt + options;
+  } catch(e) {}
+}
+
+// Input handling
+inputEl.addEventListener('input', () => { sendBtn.disabled = !inputEl.value.trim(); });
 
 function autoResize(el) {
   el.style.height = 'auto';
@@ -382,13 +545,11 @@ function handleKey(e) {
 }
 
 function scrollBottom() {
-  requestAnimationFrame(() => {
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  });
+  requestAnimationFrame(() => { messagesEl.scrollTop = messagesEl.scrollHeight; });
 }
 
 function addMsg(html, cls) {
-  if (welcomeEl) welcomeEl.remove();
+  if (welcomeEl && welcomeEl.parentNode) welcomeEl.remove();
   const div = document.createElement('div');
   div.className = 'msg ' + cls;
   div.innerHTML = html;
@@ -399,8 +560,7 @@ function addMsg(html, cls) {
 
 function showLoading() {
   const div = document.createElement('div');
-  div.className = 'loading';
-  div.id = 'loading';
+  div.className = 'loading'; div.id = 'loading';
   div.innerHTML = '<span></span><span></span><span></span>';
   messagesEl.appendChild(div);
   scrollBottom();
@@ -410,14 +570,12 @@ function hideLoading() {
   if (el) el.remove();
 }
 
-function sendQuick(text) {
-  inputEl.value = text;
-  send();
-}
+function sendQuick(text) { inputEl.value = text; send(); }
 
 function escHtml(s) {
+  if (s === null || s === undefined) return '';
   const d = document.createElement('div');
-  d.textContent = s;
+  d.textContent = String(s);
   return d.innerHTML;
 }
 
@@ -425,24 +583,25 @@ function fmtTime(iso) {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    if (isNaN(d)) return iso;
+    if (isNaN(d.getTime())) return String(iso);
     return d.toLocaleString('en-US', {
       weekday: 'short', month: 'short', day: 'numeric',
       hour: 'numeric', minute: '2-digit', hour12: true
     });
-  } catch { return iso; }
+  } catch { return String(iso); }
 }
 
 function fmtTimeShort(iso) {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    if (isNaN(d)) return iso;
+    if (isNaN(d.getTime())) return String(iso);
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  } catch { return iso; }
+  } catch { return String(iso); }
 }
 
 function renderEventCard(args) {
+  if (!args) return '';
   let rows = '';
   if (args.start_str) {
     let when = fmtTime(args.start_str);
@@ -458,8 +617,13 @@ function renderEventCard(args) {
 }
 
 function renderResult(tool, result, args, calName) {
-  // Success create/update/delete
-  if (result.success === true) {
+  if (!result) return '<div style="color:var(--text-dim)">No result returned.</div>';
+
+  // Debug: log what we got
+  console.log('renderResult:', { tool, result, args });
+
+  // Success create/update/delete (use loose equality for Gemini MapComposite)
+  if (result.success == true) {
     let html = '';
     if (tool === 'create_new_event') {
       html = `<span class="success-badge">Event created</span>`;
@@ -473,18 +637,20 @@ function renderResult(tool, result, args, calName) {
     } else if (tool === 'delete_event') {
       html = `<span class="success-badge">Event deleted</span>`;
       if (result.deleted) html += `<div style="margin-top:6px">${escHtml(result.deleted)}</div>`;
+    } else {
+      html = `<span class="success-badge">Done</span>`;
     }
-    return html;
+    if (html) return html;
   }
 
   // List events
-  if (tool === 'list_events' && result.success && result.events) {
-    if (!result.events.length) return 'No events found.';
+  if (tool === 'list_events' && result.events) {
+    if (!result.events.length) return '<div style="color:var(--text-dim)">No events found in that range.</div>';
     let html = `<div style="font-size:14px;color:var(--text-dim);margin-bottom:4px">${result.events.length} event(s)</div><div class="event-list">`;
     for (const ev of result.events) {
       const loc = ev.location ? `<div class="eli-loc">${escHtml(ev.location)}</div>` : '';
       html += `<div class="event-list-item">
-        <div class="eli-title">${escHtml(ev.summary)}</div>
+        <div class="eli-title">${escHtml(ev.summary || '(No title)')}</div>
         <div class="eli-time">${fmtTime(ev.start)} - ${fmtTimeShort(ev.end)}</div>
         ${loc}
       </div>`;
@@ -494,8 +660,8 @@ function renderResult(tool, result, args, calName) {
   }
 
   // Free slots
-  if (tool === 'find_free_slots' && result.success) {
-    if (!result.free_slots || !result.free_slots.length) return 'No free slots found.';
+  if (tool === 'find_free_slots' && result.free_slots) {
+    if (!result.free_slots.length) return '<div style="color:var(--text-dim)">No free slots found.</div>';
     let html = `<div style="font-size:14px;margin-bottom:6px">${result.free_slots.length} free slot(s)</div><div class="event-list">`;
     for (const s of result.free_slots.slice(0, 8)) {
       html += `<div class="free-slot">${fmtTime(s.start)} - ${fmtTimeShort(s.end)} (${s.duration_minutes} min)</div>`;
@@ -505,28 +671,36 @@ function renderResult(tool, result, args, calName) {
   }
 
   // Suggest next free slot
-  if (tool === 'suggest_next_free_slot' && result.success && result.suggested_slot) {
+  if (tool === 'suggest_next_free_slot' && result.suggested_slot) {
     const s = result.suggested_slot;
     return `<div>Next free slot:</div><div class="free-slot" style="margin-top:6px">${fmtTime(s.start)} (${s.duration_minutes} min available)</div>`;
   }
 
   // Get next event
-  if (tool === 'get_next_event' && result && result.summary) {
-    return `<div style="font-size:14px;color:var(--text-dim);margin-bottom:4px">Next event</div>
-      <div class="event-list-item">
-        <div class="eli-title">${escHtml(result.summary)}</div>
-        <div class="eli-time">${fmtTime(result.start)}</div>
-        <div class="eli-loc">${escHtml(result.calendar || '')}</div>
-      </div>`;
+  if (tool === 'get_next_event') {
+    if (result.summary) {
+      return `<div style="font-size:14px;color:var(--text-dim);margin-bottom:4px">Next event</div>
+        <div class="event-list-item">
+          <div class="eli-title">${escHtml(result.summary)}</div>
+          <div class="eli-time">${fmtTime(result.start)}</div>
+          <div class="eli-loc">${escHtml(result.calendar || '')}</div>
+        </div>`;
+    }
+    return '<div style="color:var(--text-dim)">No upcoming events.</div>';
   }
 
   // Error
-  if (result.success === false) {
+  if (result.success == false || result.error) {
     return `<div style="color:var(--red)">${escHtml(result.error || 'Something went wrong.')}</div>`;
   }
 
-  // Fallback
-  return `<pre style="font-size:13px;white-space:pre-wrap">${escHtml(JSON.stringify(result, null, 2))}</pre>`;
+  // Message from Gemini
+  if (result.message) {
+    return `<div>${escHtml(result.message)}</div>`;
+  }
+
+  // Fallback: show raw JSON
+  return `<pre style="font-size:12px;white-space:pre-wrap;color:var(--text-dim)">${escHtml(JSON.stringify(result, null, 2))}</pre>`;
 }
 
 let busy = false;
@@ -545,7 +719,7 @@ async function send() {
   showLoading();
 
   try {
-    const res = await fetch('/command', {
+    const res = await fetch(API + '/command', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ command: text })
@@ -556,8 +730,8 @@ async function send() {
     if (data.status === 'error') {
       addMsg(escHtml(data.message || 'Something went wrong.'), 'bot error');
     } else if (data.status === 'conflict') {
-      const conflict = data.result.conflict || {};
-      let html = `<div style="margin-bottom:8px">Conflict with <strong>${escHtml(conflict.summary || '?')}</strong></div>`;
+      const conflict = (data.result && data.result.conflict) || {};
+      let html = `<div style="margin-bottom:8px">Conflict with <strong>${escHtml(conflict.summary || 'existing event')}</strong></div>`;
       html += `<div style="font-size:13px;color:var(--text-dim)">${fmtTime(conflict.start)} - ${fmtTimeShort(conflict.end)}</div>`;
       if (data.suggested_slot) {
         html += `<div style="margin-top:8px;font-size:13px">Suggested: <strong>${fmtTime(data.suggested_slot.start)}</strong></div>`;
@@ -566,9 +740,7 @@ async function send() {
         <button class="conflict-btn primary" onclick="resolveConflict('force', this)">Create Anyway</button>
         ${data.suggested_slot ? `<button class="conflict-btn" onclick="resolveConflict('suggest', this)">Use Suggested</button>` : ''}
       </div>`;
-
       const msgEl = addMsg(html, 'bot conflict');
-      // Store context on the element
       msgEl._conflictData = data;
     } else {
       const html = renderResult(data.tool, data.result, data.args || {}, data.calendar_name);
@@ -578,17 +750,13 @@ async function send() {
     hideLoading();
     addMsg('Could not reach server. Is it running?', 'bot error');
   }
-
   busy = false;
 }
 
 async function resolveConflict(action, btn) {
-  // Find parent msg
   const msgEl = btn.closest('.msg');
   const data = msgEl._conflictData;
   if (!data) return;
-
-  // Remove action buttons
   const actionsEl = msgEl.querySelector('.conflict-actions');
   if (actionsEl) actionsEl.remove();
 
@@ -597,12 +765,10 @@ async function resolveConflict(action, btn) {
   if (action === 'force') {
     body = { command: data.args.summary + ' at ' + data.args.start_str, ignore_conflict: true };
   } else if (action === 'suggest' && data.suggested_slot) {
-    // Reconstruct command with suggested time
     body = { command: data.args.summary + ' at ' + data.suggested_slot.start, ignore_conflict: true };
   }
-
   try {
-    const res = await fetch('/command', {
+    const res = await fetch(API + '/command', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -617,7 +783,184 @@ async function resolveConflict(action, btn) {
   }
 }
 
-// Focus input on load
+// --- Integration functions ---
+
+function setIntStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'int-status show ' + type;
+}
+
+async function syncPrairieTest() {
+  const url = document.getElementById('pt-url').value.trim();
+  const cal = document.getElementById('pt-calendar').value;
+  if (!url) { setIntStatus('pt-status', 'Please enter your PrairieTest URL.', 'error'); return; }
+  if (!cal) { setIntStatus('pt-status', 'Please select a target calendar.', 'error'); return; }
+
+  setIntStatus('pt-status', 'Scanning PrairieTest for exam reservations...', 'loading');
+  document.getElementById('pt-sync-btn').disabled = true;
+
+  try {
+    const res = await fetch(API + '/integrations/prairietest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, calendar: cal })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      setIntStatus('pt-status', `Found ${data.exams ? data.exams.length : 0} exam(s). Added to ${cal} calendar.`, 'success');
+      if (data.exams && data.exams.length) {
+        let html = '';
+        for (const exam of data.exams) {
+          html += `<div class="int-result-item">
+            <div class="int-result-info">
+              <div class="int-result-title">${escHtml(exam.name || exam.summary)}</div>
+              <div class="int-result-sub">${escHtml(exam.date || exam.start || '')} ${exam.location ? '@ ' + exam.location : ''}</div>
+            </div>
+            <span style="color:var(--green);font-size:12px">Added</span>
+          </div>`;
+        }
+        document.getElementById('pt-results').innerHTML = html;
+      }
+    } else {
+      setIntStatus('pt-status', data.error || 'Failed to sync. Check your URL and try again.', 'error');
+    }
+  } catch(e) {
+    setIntStatus('pt-status', 'Could not connect to server. Is the backend running?', 'error');
+  }
+  document.getElementById('pt-sync-btn').disabled = false;
+}
+
+async function syncPrairieLearn() {
+  const url = document.getElementById('pl-url').value.trim();
+  const cal = document.getElementById('pl-calendar').value;
+  if (!url) { setIntStatus('pl-status', 'Please enter your PrairieLearn course URL.', 'error'); return; }
+  if (!cal) { setIntStatus('pl-status', 'Please select a target calendar.', 'error'); return; }
+
+  setIntStatus('pl-status', 'Fetching deadlines from PrairieLearn...', 'loading');
+  document.getElementById('pl-sync-btn').disabled = true;
+
+  try {
+    const res = await fetch(API + '/integrations/prairielearn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, calendar: cal })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      setIntStatus('pl-status', `Found ${data.deadlines ? data.deadlines.length : 0} deadline(s). Added to ${cal} calendar.`, 'success');
+      if (data.deadlines && data.deadlines.length) {
+        let html = '';
+        for (const dl of data.deadlines) {
+          html += `<div class="int-result-item">
+            <div class="int-result-info">
+              <div class="int-result-title">${escHtml(dl.name || dl.summary)}</div>
+              <div class="int-result-sub">Due: ${escHtml(dl.due_date || dl.start || '')}</div>
+            </div>
+            <span style="color:var(--green);font-size:12px">Added</span>
+          </div>`;
+        }
+        document.getElementById('pl-results').innerHTML = html;
+      }
+    } else {
+      setIntStatus('pl-status', data.error || 'Failed to sync. Check your URL and try again.', 'error');
+    }
+  } catch(e) {
+    setIntStatus('pl-status', 'Could not connect to server. Is the backend running?', 'error');
+  }
+  document.getElementById('pl-sync-btn').disabled = false;
+}
+
+async function scanSlack() {
+  const channel = document.getElementById('sl-channel').value.trim();
+  const lookback = document.getElementById('sl-lookback').value;
+  if (!channel) { setIntStatus('sl-status', 'Please enter a channel name.', 'error'); return; }
+
+  setIntStatus('sl-status', `Scanning ${channel} for scheduling messages...`, 'loading');
+  document.getElementById('sl-scan-btn').disabled = true;
+
+  try {
+    const res = await fetch(API + '/integrations/slack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel, lookback_hours: parseInt(lookback) })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      const events = data.events || [];
+      setIntStatus('sl-status', `Found ${events.length} potential event(s).`, events.length ? 'success' : 'loading');
+      if (events.length) {
+        let html = '';
+        for (let i = 0; i < events.length; i++) {
+          const ev = events[i];
+          html += `<div class="int-result-item">
+            <div class="int-result-info">
+              <div class="int-result-title">${escHtml(ev.summary || ev.text)}</div>
+              <div class="int-result-sub">${escHtml(ev.start || ev.time || 'Time TBD')} ${ev.from ? '- from ' + ev.from : ''}</div>
+            </div>
+            <button class="int-add-btn" onclick="addSlackEvent(${i}, this)">Add</button>
+          </div>`;
+        }
+        document.getElementById('sl-results').innerHTML = html;
+        window._slackEvents = events;
+      }
+    } else {
+      setIntStatus('sl-status', data.error || 'Failed to scan. Check channel name.', 'error');
+    }
+  } catch(e) {
+    setIntStatus('sl-status', 'Could not connect to server. Is the backend running?', 'error');
+  }
+  document.getElementById('sl-scan-btn').disabled = false;
+}
+
+async function addSlackEvent(idx, btn) {
+  const ev = window._slackEvents && window._slackEvents[idx];
+  if (!ev) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const cmd = ev.summary + (ev.start ? ' at ' + ev.start : '');
+    const res = await fetch(API + '/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: cmd })
+    });
+    const data = await res.json();
+    if (data.result && data.result.success) {
+      btn.textContent = 'Added';
+      btn.style.borderColor = 'var(--green)';
+      btn.style.color = 'var(--green)';
+    } else {
+      btn.textContent = 'Failed';
+      btn.style.color = 'var(--red)';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    btn.textContent = 'Error';
+    btn.style.color = 'var(--red)';
+    btn.disabled = false;
+  }
+}
+
+function quickAdd(type) {
+  switchTab('chat', document.querySelector('.tab'));
+  document.querySelector('.tab').classList.remove('active');
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  const templates = {
+    exam: 'CS 357 Midterm on cs357 calendar at CBTF',
+    homework: 'CS 374 HW 5 due on cs374 calendar',
+    quiz: 'STAT 410 Quiz 3 on stat410 calendar',
+    meeting: 'Team meeting tomorrow at 2pm with Google Meet',
+  };
+  inputEl.value = templates[type] || '';
+  inputEl.focus();
+  sendBtn.disabled = false;
+}
+
+// Focus on load
 inputEl.focus();
 </script>
 </body>
