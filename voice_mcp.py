@@ -1,6 +1,8 @@
 import threading
 import json
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 from google.genai import Client, types
@@ -33,6 +35,12 @@ DURATION_DEFAULTS = CONFIG.get("duration_defaults", {})
 CONTACTS = CONFIG.get("contacts", {})
 
 app = FastAPI(title="Calendar Voice Assistant", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 model = whisper.load_model("base")
 
 
@@ -104,6 +112,70 @@ def invoke_tool(call: ToolCall):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class CommandRequest(BaseModel):
+    command: str
+    ignore_conflict: bool = False
+
+@app.post('/command')
+def handle_command_api(req: CommandRequest):
+    """Web-facing endpoint: takes natural language, returns structured result."""
+    try:
+        parsed = gemini_parse(req.command)
+        if not parsed:
+            # Fallback to local parsing
+            parsed_event = parse_natural_language_event(req.command)
+            if parsed_event.get("summary") and parsed_event.get("start_str"):
+                parsed = ("create_new_event", parsed_event)
+            else:
+                return {"status": "error", "message": "Could not understand command. Try rephrasing."}
+
+        tool_name, args = parsed
+
+        if req.ignore_conflict:
+            args["ignore_conflict"] = True
+
+        tool_result = call_tool(tool_name, args)
+
+        # Build preview info
+        cal_id = args.get("calendar_id", "primary")
+        cal_name = cal_id
+        for alias, cid in CALENDAR_ALIASES.items():
+            if cid == cal_id:
+                cal_name = alias
+                break
+
+        response = {
+            "status": "ok",
+            "tool": tool_name,
+            "args": args,
+            "calendar_name": cal_name,
+            "result": tool_result,
+        }
+
+        # If conflict, add suggestion
+        if (tool_name == "create_new_event"
+                and isinstance(tool_result, dict)
+                and tool_result.get("success") is False
+                and tool_result.get("error") == "Event conflict detected"):
+            response["status"] = "conflict"
+            suggested = suggest_next_free_slot(args.get("start_str", ""), DEFAULT_DURATION)
+            if suggested.get("success") and suggested.get("suggested_slot"):
+                response["suggested_slot"] = suggested["suggested_slot"]
+
+        return response
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get('/calendars')
+def get_calendars():
+    return {"calendars": CALENDAR_ALIASES}
+
+@app.get('/', response_class=HTMLResponse)
+def serve_frontend():
+    html_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    with open(html_path) as f:
+        return f.read()
 
 def run_server():
     uvicorn.run(app, host="0.0.0.0", port=8000)
